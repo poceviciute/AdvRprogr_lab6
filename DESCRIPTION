@@ -1,0 +1,10 @@
+Package: knapsack
+Type: Package
+Title: Knapsack
+Version: 1.0
+Date: 2017-10-03
+Author: Henrik Karlsson and Milda Poceviciute
+Maintainer: Henrik Karlsson <henkar91@gmail.com>
+Description: Package solves the knapsack problem in three different ways
+License: GPL-2
+RoxygenNote: 6.0.1
