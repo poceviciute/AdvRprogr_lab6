@@ -14,7 +14,7 @@ powerset <- function(items) {
 
 brute_force_knapsack <- function(x, W) {
     stopifnot(is.data.frame(x),
-              is.numeric(x),
+             # is.numeric(x),
               x > 0,
               length(W) == 1,
               is.numeric(W))
@@ -46,6 +46,6 @@ brute_force_knapsack <- function(x, W) {
             chosen_items <- c_sets
         }
     }
-    result <- list(value = best_v, elements = chosen_items)
+    result <- list(value = round(best_v,2), elements = chosen_items)
     return(result)
 }
