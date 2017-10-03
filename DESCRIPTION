@@ -9,5 +9,6 @@ Description: Package solves the knapsack problem in three different ways
 License: GPL-2
 RoxygenNote: 6.0.1
 Suggests: knitr,
-    rmarkdown
+    rmarkdown,
+    testthat
 VignetteBuilder: knitr

@@ -13,7 +13,7 @@ knapsack_objects <-
 # Greedy Heuristic --------------------------------------------------------
 library(dplyr)
 
-greedy_heuristic <- function(x = knapsack_objects, w){
+greedy_knapsack <- function(x = knapsack_objects, w){
     stopifnot(is.numeric(w))
     
     x <- x %>%
