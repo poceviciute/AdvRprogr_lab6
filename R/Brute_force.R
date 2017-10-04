@@ -12,13 +12,18 @@ powerset <- function(items) {
     return(l)
 }
 
-brute_force_knapsack <- function(x, W) {
+brute_force_knapsack <- function(x, W, parallel = FALSE) {
+    
     stopifnot(is.data.frame(x),
-              apply(x, c(1,2), is.numeric),
-              x > 0,
-              length(W) == 1,
+              apply(x, c(1, 2), is.numeric),
               is.numeric(W))
     
+    stopifnot(x > 0,
+              length(W) == 1,
+              W > 0,
+              is.logical(parallel)))
+
+if(parallel = FALSE){
     # initiate variables
     n <- nrow(x)
     best_v <- 0
@@ -42,10 +47,14 @@ brute_force_knapsack <- function(x, W) {
         
         # compare the value of this set to the previous best value
         if (set_v > best_v && set_w <= W) {
-            best_v <- round(set_v,0)
+            best_v <- round(set_v, 0)
             chosen_items <- c_sets
         }
     }
-    result <- list(value = round(best_v,2), elements = chosen_items)
+    result <- list(value = round(best_v, 2), elements = chosen_items)
     return(result)
+} else{
+    
+    
+}
 }

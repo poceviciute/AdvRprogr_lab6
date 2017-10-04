@@ -1,11 +1,12 @@
 knapsack_dynamic <- function(x, W) {
     
     stopifnot(is.data.frame(x),
-              apply(x, c(1,2), is.numeric))
+              apply(x, c(1, 2), is.numeric),
+              is.numeric(W))
     
     stopifnot(x > 0,
               length(W) == 1,
-              is.numeric(W))
+              W > 0)
     
     # initiate variables
     n <- nrow(x)
