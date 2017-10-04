@@ -13,7 +13,6 @@ powerset <- function(items) {
 }
 
 brute_force_knapsack <- function(x, W, parallel = FALSE) {
-    
     stopifnot(is.data.frame(x),
               apply(x, c(1, 2), is.numeric),
               is.numeric(W))
@@ -21,9 +20,9 @@ brute_force_knapsack <- function(x, W, parallel = FALSE) {
     stopifnot(x > 0,
               length(W) == 1,
               W > 0,
-              is.logical(parallel)))
+              is.logical(parallel))
 
-if(parallel = FALSE){
+if(parallel == FALSE){
     # initiate variables
     n <- nrow(x)
     best_v <- 0
