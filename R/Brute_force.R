@@ -14,7 +14,7 @@ powerset <- function(items) {
 
 brute_force_knapsack <- function(x, W) {
     stopifnot(is.data.frame(x),
-             # is.numeric(x),
+              apply(x, c(1,2), is.numeric),
               x > 0,
               length(W) == 1,
               is.numeric(W))
