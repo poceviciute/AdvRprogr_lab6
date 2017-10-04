@@ -70,7 +70,7 @@ brute_force_knapsack <- function(x, w, parallel = FALSE) {
         
         sum_v <- unlist(mclapply(1:nrow(x), FUN = function(y) {
                 (combn(x[, "v"], y, sum))
-            }, , mc.cores = cores
+            }, mc.cores = cores
         ))
         
         max_value <- max(sum_v[which(sum_w < w)])
@@ -78,7 +78,7 @@ brute_force_knapsack <- function(x, w, parallel = FALSE) {
         elements <- selection[which(sum_v == max_value & sum_w <= w)]
         
         return(list(
-            value = max_value,
+            value = round(max_value, 0),
             weight = max_weight,
             element = elements
         ))
@@ -86,5 +86,5 @@ brute_force_knapsack <- function(x, w, parallel = FALSE) {
     }
 }
 
-brute_force_knapsack(x = knapsack_objects[1:8,], w = 3500, parallel = FALSE)
-brute_force_knapsack(x = knapsack_objects[1:8,], w = 3500, parallel = TRUE)
+system.time(brute_force_knapsack(x = knapsack_objects[1:20,], w = 3500, parallel = FALSE))
+system.time(brute_force_knapsack(x = knapsack_objects[1:20,], w = 3500, parallel = TRUE))
