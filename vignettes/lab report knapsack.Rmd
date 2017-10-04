@@ -72,12 +72,17 @@ greedy_heuristic <- function(x = knapsack_objects, w){
 ```{r, gh_time}
 n_gh <- 1000000
 
+# Option 1
+system.time(greedy_heuristic(x = knapsack_objects[1:1000, ], w = 2000))
 
+# Option 2
 start <- Sys.time()
 greedy_heuristic(x = knapsack_objects[1:1000, ], w = 2000)
 end <- Sys.time()
+gh_time <- end-start
+gh_time
 
-gh_time <-end-start
+
 
 answer_gh <- gh_time * (n_gh/1000)
 
