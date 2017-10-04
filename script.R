@@ -11,7 +11,7 @@ W_max <- 3500
 W <- 3500
 
 brute_force_knapsack(knapsack_objects[1:12,],5000)
-knapsack_dynamic(knapsack_objects[1:12,],5000)
+knapsack_dynamic(knapsack_objects[1:12,],-5000)
 
 
 x <- data.frame(w = c(1,3,4,5,2),
