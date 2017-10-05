@@ -1,3 +1,5 @@
+library(parallel)
+
 powerset <- function(items) {
     len = length(items)
     l = vector(mode = "list", length = 2 ^ len)
@@ -56,7 +58,7 @@ brute_force_knapsack <- function(x, w, parallel = FALSE) {
     } else{
         
         cores <- parallel::detectCores()
-        cores
+      
         
         selection <- unlist(mclapply(1:nrow(x), FUN = function(y) {
                 combn(rownames(x), y, paste, collapse = " ")
@@ -86,5 +88,5 @@ brute_force_knapsack <- function(x, w, parallel = FALSE) {
     }
 }
 
-system.time(brute_force_knapsack(x = knapsack_objects[1:20,], w = 3500, parallel = FALSE))
-system.time(brute_force_knapsack(x = knapsack_objects[1:20,], w = 3500, parallel = TRUE))
+system.time(brute_force_knapsack(x = knapsack_objects[1:15,], w = 3500))
+system.time(brute_force_knapsack(x = knapsack_objects[1:15,], w = 3500, parallel = TRUE))
