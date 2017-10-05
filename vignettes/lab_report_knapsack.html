@@ -77,8 +77,9 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <div id="data-used" class="section level1">
 <h1>Data used</h1>
 <p>The following example data is being used for all knapsack solutions in this package.</p>
-<p>Our package depends on dplyr.</p>
+<p>Our package depends on dplyr and parallel::mcapply.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(dplyr)
+<span class="kw">library</span>(parallel)
 
 <span class="kw">set.seed</span>(<span class="dv">42</span>)
 n &lt;-<span class="st"> </span><span class="dv">2000</span>
@@ -90,158 +91,40 @@ knapsack_objects &lt;-
 </div>
 <div id="brute-force-search" class="section level1">
 <h1>Brute Force Search</h1>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">powerset &lt;-<span class="st"> </span>function(items) {
-    len =<span class="st"> </span><span class="kw">length</span>(items)
-    l =<span class="st"> </span><span class="kw">vector</span>(<span class="dt">mode =</span> <span class="st">&quot;list&quot;</span>, <span class="dt">length =</span> <span class="dv">2</span> ^<span class="st"> </span>len)
-    l[[<span class="dv">1</span>]] =<span class="st"> </span><span class="kw">numeric</span>()
-    counter =<span class="st"> </span>1L
-    for (x in 1L:<span class="kw">length</span>(items)) {
-        for (subset in 1L:counter) {
-            counter =<span class="st"> </span>counter +<span class="st"> </span>1L
-            l[[counter]] =<span class="st"> </span><span class="kw">c</span>(l[[subset]], items[x])
-        }
-    }
-    <span class="kw">return</span>(l)
-}
+<p>The Brute Force funtion computes all different combination of the selected items, then computes the value and the weight for each combination and selects the higest value within the weight restriction.</p>
+<p>The function have two modes, run the computation one or several cores. The function defaults to R standard one core, the parallel = TRUE runs on all cores. Note, that parallel = TRUE can only be run on UNIX platforms (Mac/Linux).</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">single_core &lt;-<span class="st"> </span><span class="kw">system.time</span>(<span class="kw">brute_force_knapsack</span>(<span class="dt">x =</span> knapsack_objects[<span class="dv">1</span>:<span class="dv">16</span>,], <span class="dt">W =</span> <span class="dv">3500</span>))
+all_core &lt;-<span class="st"> </span><span class="kw">system.time</span>(<span class="kw">brute_force_knapsack</span>(<span class="dt">x =</span> knapsack_objects[<span class="dv">1</span>:<span class="dv">16</span>,], <span class="dt">W =</span> <span class="dv">3500</span>, <span class="dt">parallel =</span> <span class="ot">TRUE</span>))
 
-brute_force_knapsack &lt;-<span class="st"> </span>function(x, w, <span class="dt">parallel =</span> <span class="ot">FALSE</span>) {
-    <span class="kw">stopifnot</span>(<span class="kw">is.data.frame</span>(x),
-              <span class="kw">apply</span>(x, <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">2</span>), is.numeric),
-              <span class="kw">is.numeric</span>(w))
-    
-    <span class="kw">stopifnot</span>(x &gt;<span class="st"> </span><span class="dv">0</span>,
-              <span class="kw">length</span>(w) ==<span class="st"> </span><span class="dv">1</span>,
-              w &gt;<span class="st"> </span><span class="dv">0</span>,
-              <span class="kw">is.logical</span>(parallel))
-    
-    if (parallel ==<span class="st"> </span><span class="ot">FALSE</span>) {
-        <span class="co"># initiate variables</span>
-        n &lt;-<span class="st"> </span><span class="kw">nrow</span>(x)
-        best_v &lt;-<span class="st"> </span><span class="dv">0</span>
-        chosen_items &lt;-<span class="st"> </span><span class="kw">c</span>()
-        items &lt;-<span class="st"> </span><span class="dv">1</span>:n
-        sets &lt;-<span class="st"> </span><span class="kw">powerset</span>(items)
-        
-        <span class="co"># loop through all possible sets (ommit empty set)</span>
-        for (i in <span class="dv">2</span>:<span class="kw">length</span>(sets)) {
-            c_sets &lt;-<span class="st"> </span><span class="kw">unlist</span>(sets[i])
-            set_w &lt;-<span class="st"> </span><span class="dv">0</span>
-            set_v &lt;-<span class="st"> </span><span class="dv">0</span>
-            j &lt;-<span class="st"> </span><span class="dv">1</span>
-            <span class="co"># loop through the elements in the set</span>
-            while (j &lt;=<span class="st"> </span><span class="kw">length</span>(c_sets) &amp;&amp;<span class="st"> </span>set_w &lt;=<span class="st"> </span>w) {
-                row &lt;-<span class="st"> </span>c_sets[j]
-                set_w &lt;-<span class="st"> </span>set_w +<span class="st"> </span>x[row, <span class="dv">1</span>]
-                set_v &lt;-<span class="st"> </span>set_v +<span class="st"> </span>x[row, <span class="dv">2</span>]
-                j &lt;-<span class="st"> </span>j +<span class="st"> </span><span class="dv">1</span>
-            }
-            
-            <span class="co"># compare the value of this set to the previous best value</span>
-            if (set_v &gt;<span class="st"> </span>best_v &amp;&amp;<span class="st"> </span>set_w &lt;=<span class="st"> </span>w) {
-                best_v &lt;-<span class="st"> </span><span class="kw">round</span>(set_v, <span class="dv">0</span>)
-                chosen_items &lt;-<span class="st"> </span>c_sets
-            }
-        }
-        result &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="dt">value =</span> <span class="kw">round</span>(best_v, <span class="dv">2</span>), <span class="dt">elements =</span> chosen_items)
-        <span class="kw">return</span>(result)
-        
-    } else{
-        
-        cores &lt;-<span class="st"> </span>parallel::<span class="kw">detectCores</span>()
-        
-        selection &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">mclapply</span>(<span class="dv">1</span>:<span class="kw">nrow</span>(x), <span class="dt">FUN =</span> function(y) {
-                <span class="kw">combn</span>(<span class="kw">rownames</span>(x), y, paste, <span class="dt">collapse =</span> <span class="st">&quot; &quot;</span>)
-            }, <span class="dt">mc.cores =</span> cores
-        ))
-        
-        sum_w &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">mclapply</span>(<span class="dv">1</span>:<span class="kw">nrow</span>(x), <span class="dt">FUN =</span> function(y) {
-                (<span class="kw">combn</span>(x[, <span class="st">&quot;w&quot;</span>], y, sum))
-            }, <span class="dt">mc.cores =</span> cores
-            ))
-        
-        sum_v &lt;-<span class="st"> </span><span class="kw">unlist</span>(<span class="kw">mclapply</span>(<span class="dv">1</span>:<span class="kw">nrow</span>(x), <span class="dt">FUN =</span> function(y) {
-                (<span class="kw">combn</span>(x[, <span class="st">&quot;v&quot;</span>], y, sum))
-            }, <span class="dt">mc.cores =</span> cores
-        ))
-        
-        max_value &lt;-<span class="st"> </span><span class="kw">max</span>(sum_v[<span class="kw">which</span>(sum_w &lt;<span class="st"> </span>w)])
-        max_weight &lt;-<span class="st"> </span><span class="kw">max</span>(sum_w[<span class="kw">which</span>(sum_w &lt;<span class="st"> </span>w)])
-        elements &lt;-<span class="st"> </span>selection[<span class="kw">which</span>(sum_v ==<span class="st"> </span>max_value &amp;<span class="st"> </span>sum_w &lt;=<span class="st"> </span>w)]
-        
-        <span class="kw">return</span>(<span class="kw">list</span>(
-            <span class="dt">value =</span> <span class="kw">round</span>(max_value, <span class="dv">0</span>),
-            <span class="dt">weight =</span> max_weight,
-            <span class="dt">element =</span> elements
-        ))
-        
-    }
-}</code></pre></div>
+<span class="kw">print</span>(<span class="kw">list</span>(<span class="dt">single_core =</span> single_core,
+           <span class="dt">all_core =</span> all_core))</code></pre></div>
 </div>
 <div id="dynamic-programming" class="section level1">
 <h1>Dynamic Programming</h1>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">dynamic &lt;-<span class="st"> </span><span class="kw">system.time</span>(<span class="kw">knapsack_dynamic</span>(<span class="dt">x =</span> knapsack_objects[<span class="dv">1</span>:<span class="dv">18</span>,], <span class="dt">W =</span> <span class="dv">3500</span>))</code></pre></div>
 </div>
 <div id="greedy-heuristic" class="section level1">
 <h1>Greedy Heuristic</h1>
 <p>The greedy_heuristic function takes two arguments, <strong>x</strong> which is the data frame containing weight and value and <strong>w</strong> which is the total maximum allowed weight of the function. The function computes the density <span class="math inline">\(density = \frac{v}{w}\)</span>, sorts the data in in descending density order and pick out the objects with higest density within the the allowed maximum weight, w.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">greedy_heuristic &lt;-<span class="st"> </span>function(<span class="dt">x =</span> knapsack_objects, w){
-    <span class="kw">stopifnot</span>(<span class="kw">is.numeric</span>(w))
-    
-    x &lt;-<span class="st"> </span>x %&gt;%
-<span class="st">        </span><span class="kw">mutate</span>(<span class="dt">element =</span> <span class="kw">seq_along</span>((x[[<span class="dv">1</span>]])),
-               <span class="dt">density =</span> v/w) %&gt;%<span class="st"> </span>
-<span class="st">        </span><span class="kw">arrange</span>(<span class="kw">desc</span>(density))
-    
-    <span class="co"># Start values</span>
-    sum_weight &lt;-<span class="st"> </span><span class="dv">0</span>
-    sum_value &lt;-<span class="st"> </span><span class="dv">0</span>
-    weight_check &lt;-<span class="st"> </span><span class="dv">0</span>
-    selected_elements &lt;-<span class="st"> </span><span class="kw">vector</span>()
-    i &lt;-<span class="st"> </span><span class="dv">1</span>
-    
-    while (weight_check &lt;=<span class="st"> </span>w) {
-        sum_weight &lt;-<span class="st"> </span>sum_weight +<span class="st"> </span>x[i, <span class="st">&quot;w&quot;</span>]
-        sum_value &lt;-<span class="st"> </span>sum_value +<span class="st"> </span>x[i, <span class="st">&quot;v&quot;</span>]
-        
-        selected_elements[i] &lt;-<span class="st"> </span>x[i, <span class="st">&quot;element&quot;</span>]
-        
-        weight_check &lt;-<span class="st"> </span>sum_weight +<span class="st"> </span>x[i +<span class="st"> </span><span class="dv">1</span>, <span class="st">&quot;w&quot;</span>]
-        i &lt;-<span class="st"> </span>i +<span class="st"> </span><span class="dv">1</span>
-    }
-    
-    <span class="kw">return</span>(<span class="kw">list</span>(<span class="dt">value =</span> <span class="kw">round</span>(sum_value, <span class="dv">0</span>),
-                <span class="dt">sum_weight =</span> sum_weight,
-                <span class="dt">selected_elements =</span> selected_elements))
-}</code></pre></div>
 <div id="how-much-time-does-it-take-to-run-the-algorithm" class="section level3">
 <h3>How much time does it take to run the algorithm?</h3>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">n_gh &lt;-<span class="st"> </span><span class="dv">1000000</span>
 
 <span class="co"># Option 1</span>
-<span class="kw">system.time</span>(<span class="kw">greedy_heuristic</span>(<span class="dt">x =</span> knapsack_objects[<span class="dv">1</span>:<span class="dv">1000</span>, ], <span class="dt">w =</span> <span class="dv">2000</span>))</code></pre></div>
-<pre><code>## Warning: package 'bindrcpp' was built under R version 3.3.2</code></pre>
-<pre><code>##    user  system elapsed 
-##   0.027   0.002   0.033</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Option 2</span>
+<span class="kw">system.time</span>(<span class="kw">greedy_knapsack</span>(<span class="dt">x =</span> knapsack_objects[<span class="dv">1</span>:<span class="dv">1000</span>, ], <span class="dt">W =</span> <span class="dv">2000</span>))
+
+<span class="co"># Option 2</span>
 start &lt;-<span class="st"> </span><span class="kw">Sys.time</span>()
-<span class="kw">greedy_heuristic</span>(<span class="dt">x =</span> knapsack_objects[<span class="dv">1</span>:<span class="dv">1000</span>, ], <span class="dt">w =</span> <span class="dv">2000</span>)</code></pre></div>
-<pre><code>## $value
-## [1] 171314
-## 
-## $sum_weight
-## [1] 1880
-## 
-## $selected_elements
-##  [1]   92  574  472   80  110  840  537 1000  332  117   37  947  904  776
-## [15]  577  288  234  255  833  873  828  500  794   55  290  937  436  346
-## [29]  282  764  982</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">end &lt;-<span class="st"> </span><span class="kw">Sys.time</span>()
+<span class="kw">greedy_knapsack</span>(<span class="dt">x =</span> knapsack_objects[<span class="dv">1</span>:<span class="dv">1000</span>, ], <span class="dt">W =</span> <span class="dv">2000</span>)
+end &lt;-<span class="st"> </span><span class="kw">Sys.time</span>()
 gh_time &lt;-<span class="st"> </span>end-start
-gh_time</code></pre></div>
-<pre><code>## Time difference of 0.0229609 secs</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">answer_gh &lt;-<span class="st"> </span>gh_time *<span class="st"> </span>(n_gh/<span class="dv">1000</span>)
+gh_time
+
+
+
+answer_gh &lt;-<span class="st"> </span>gh_time *<span class="st"> </span>(n_gh/<span class="dv">1000</span>)
 
 <span class="kw">print</span>(answer_gh)</code></pre></div>
-<pre><code>## Time difference of 22.9609 secs</code></pre>
 <p>To run greed_heuristic() with n = 1000000 takes answer_gh.</p>
 </div>
 </div>

@@ -14,7 +14,7 @@ The following example data is being used for all knapsack solutions in this pack
 
 Our package depends on dplyr and parallel::mcapply.
 
-```{r data, warning = FALSE, comment= NA, message=FALSE}
+```{r data, warning = FALSE, comment= NA, message=FALSE, eval = FALSE}
 library(dplyr)
 library(parallel)
 
@@ -33,7 +33,7 @@ The Brute Force funtion computes all different combination of the selected items
 
 The function have two modes, run the computation one or several cores. The function defaults to R standard one core, the parallel = TRUE runs on all cores. Note, that parallel = TRUE can only be run on UNIX platforms (Mac/Linux).
 
-```{r, brute_force, echo = FALSE}
+```{r, brute_force, echo = FALSE, eval = FALSE}
 brute_force_knapsack <- function(x, W, parallel = FALSE) {
     stopifnot(is.data.frame(x),
               apply(x, c(1, 2), is.numeric),
@@ -124,7 +124,7 @@ brute_force_knapsack <- function(x, W, parallel = FALSE) {
 
 ```
 
-```{r}
+```{r, eval = FALSE}
 single_core <- system.time(brute_force_knapsack(x = knapsack_objects[1:16,], W = 3500))
 all_core <- system.time(brute_force_knapsack(x = knapsack_objects[1:16,], W = 3500, parallel = TRUE))
 
@@ -133,7 +133,7 @@ print(list(single_core = single_core,
 ```
 
 # Dynamic Programming
-```{r, echo = FALSE}
+```{r, echo = FALSE, eval = FALSE}
 knapsack_dynamic <- function(x, W) {
     
     stopifnot(is.data.frame(x),
@@ -200,18 +200,16 @@ knapsack_dynamic <- function(x, W) {
 }
 ```
 
-```{r}
+```{r, eval = FALSE}
 dynamic <- system.time(knapsack_dynamic(x = knapsack_objects[1:18,], W = 3500))
 
-
-print(dynamic)
 ```
 
 # Greedy Heuristic
 
 The greedy_heuristic function takes two arguments, **x** which is the data frame containing weight and value and **w** which is the total maximum allowed weight of the function. The function computes the density $density = \frac{v}{w}$, sorts the data in in descending density order and pick out the objects with higest density within the the allowed maximum weight, w.
 
-```{r, greedy_knapsack, echo = FALSE}
+```{r, greedy_knapsack, echo = FALSE, eval = FALSE}
 
 greedy_knapsack <- function(x, W){
     stopifnot(is.data.frame(x),
@@ -251,7 +249,7 @@ greedy_knapsack <- function(x, W){
 ```
 
 ### How much time does it take to run the algorithm?
-```{r, gh_time}
+```{r, gh_time, eval = FALSE}
 n_gh <- 1000000
 
 # Option 1

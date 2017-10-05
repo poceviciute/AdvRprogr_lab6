@@ -10,6 +10,8 @@ brute_force_knapsack(x, W, parallel = FALSE)
 \item{x}{A data frame with numeric positive values.}
 
 \item{W}{A positive numeric scalar.}
+
+\item{parallel}{Set to TRUE computation to be run on all cores.}
 }
 \value{
 A list with optimal value, weight and selected objects.
