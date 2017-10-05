@@ -1,0 +1,151 @@
+## ----data, warning = FALSE, comment= NA, message=FALSE-------------------
+library(dplyr)
+
+set.seed(42)
+n <- 2000
+knapsack_objects <-
+    data.frame(
+        w=sample(1:4000, size = n, replace = TRUE),
+        v=runif(n = n, 0, 10000)
+    )
+
+## ------------------------------------------------------------------------
+
+powerset <- function(items) {
+    len = length(items)
+    l = vector(mode = "list", length = 2 ^ len)
+    l[[1]] = numeric()
+    counter = 1L
+    for (x in 1L:length(items)) {
+        for (subset in 1L:counter) {
+            counter = counter + 1L
+            l[[counter]] = c(l[[subset]], items[x])
+        }
+    }
+    return(l)
+}
+
+brute_force_knapsack <- function(x, w, parallel = FALSE) {
+    stopifnot(is.data.frame(x),
+              apply(x, c(1, 2), is.numeric),
+              is.numeric(w))
+    
+    stopifnot(x > 0,
+              length(w) == 1,
+              w > 0,
+              is.logical(parallel))
+    
+    if (parallel == FALSE) {
+        # initiate variables
+        n <- nrow(x)
+        best_v <- 0
+        chosen_items <- c()
+        items <- 1:n
+        sets <- powerset(items)
+        
+        # loop through all possible sets (ommit empty set)
+        for (i in 2:length(sets)) {
+            c_sets <- unlist(sets[i])
+            set_w <- 0
+            set_v <- 0
+            j <- 1
+            # loop through the elements in the set
+            while (j <= length(c_sets) && set_w <= w) {
+                row <- c_sets[j]
+                set_w <- set_w + x[row, 1]
+                set_v <- set_v + x[row, 2]
+                j <- j + 1
+            }
+            
+            # compare the value of this set to the previous best value
+            if (set_v > best_v && set_w <= w) {
+                best_v <- round(set_v, 0)
+                chosen_items <- c_sets
+            }
+        }
+        result <- list(value = round(best_v, 2), elements = chosen_items)
+        return(result)
+        
+    } else{
+        
+        cores <- parallel::detectCores()
+        
+        selection <- unlist(mclapply(1:nrow(x), FUN = function(y) {
+                combn(rownames(x), y, paste, collapse = " ")
+            }, mc.cores = cores
+        ))
+        
+        sum_w <- unlist(mclapply(1:nrow(x), FUN = function(y) {
+                (combn(x[, "w"], y, sum))
+            }, mc.cores = cores
+            ))
+        
+        sum_v <- unlist(mclapply(1:nrow(x), FUN = function(y) {
+                (combn(x[, "v"], y, sum))
+            }, mc.cores = cores
+        ))
+        
+        max_value <- max(sum_v[which(sum_w < w)])
+        max_weight <- max(sum_w[which(sum_w < w)])
+        elements <- selection[which(sum_v == max_value & sum_w <= w)]
+        
+        return(list(
+            value = round(max_value, 0),
+            weight = max_weight,
+            element = elements
+        ))
+        
+    }
+}
+
+
+## ---- greedy_heuristic---------------------------------------------------
+greedy_heuristic <- function(x = knapsack_objects, w){
+    stopifnot(is.numeric(w))
+    
+    x <- x %>%
+        mutate(element = seq_along((x[[1]])),
+               density = v/w) %>% 
+        arrange(desc(density))
+    
+    # Start values
+    sum_weight <- 0
+    sum_value <- 0
+    weight_check <- 0
+    selected_elements <- vector()
+    i <- 1
+    
+    while (weight_check <= w) {
+        sum_weight <- sum_weight + x[i, "w"]
+        sum_value <- sum_value + x[i, "v"]
+        
+        selected_elements[i] <- x[i, "element"]
+        
+        weight_check <- sum_weight + x[i + 1, "w"]
+        i <- i + 1
+    }
+    
+    return(list(value = round(sum_value, 0),
+                sum_weight = sum_weight,
+                selected_elements = selected_elements))
+}
+
+## ---- gh_time------------------------------------------------------------
+n_gh <- 1000000
+
+# Option 1
+system.time(greedy_heuristic(x = knapsack_objects[1:1000, ], w = 2000))
+
+# Option 2
+start <- Sys.time()
+greedy_heuristic(x = knapsack_objects[1:1000, ], w = 2000)
+end <- Sys.time()
+gh_time <- end-start
+gh_time
+
+
+
+answer_gh <- gh_time * (n_gh/1000)
+
+print(answer_gh)
+
