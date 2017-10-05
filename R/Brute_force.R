@@ -1,28 +1,38 @@
-library(parallel)
+#' @title Brute Force
+#' @name brute_force_knapsack
+#' @param x A data frame with numeric positive values.
+#' @param W A positive numeric scalar.
+#' @return A list with optimal value, weight and selected objects.
+#' @description Gives you the optimal solution with the Knapsack problem computed by brute force.
+#' Further information about the knapsack problem \url{https://en.wikipedia.org/wiki/Knapsack_problem}
+#' @references \url{https://en.wikipedia.org/wiki/Knapsack_problem}
+#' @export
 
-powerset <- function(items) {
-    len = length(items)
-    l = vector(mode = "list", length = 2 ^ len)
-    l[[1]] = numeric()
-    counter = 1L
-    for (x in 1L:length(items)) {
-        for (subset in 1L:counter) {
-            counter = counter + 1L
-            l[[counter]] = c(l[[subset]], items[x])
-        }
-    }
-    return(l)
-}
 
-brute_force_knapsack <- function(x, w, parallel = FALSE) {
+
+brute_force_knapsack <- function(x, W, parallel = FALSE) {
     stopifnot(is.data.frame(x),
               apply(x, c(1, 2), is.numeric),
-              is.numeric(w))
+              is.numeric(W))
     
     stopifnot(x > 0,
-              length(w) == 1,
-              w > 0,
+              length(W) == 1,
+              W > 0,
               is.logical(parallel))
+    
+    powerset <- function(items) {
+        len = length(items)
+        l = vector(mode = "list", length = 2 ^ len)
+        l[[1]] = numeric()
+        counter = 1L
+        for (x in 1L:length(items)) {
+            for (subset in 1L:counter) {
+                counter = counter + 1L
+                l[[counter]] = c(l[[subset]], items[x])
+            }
+        }
+        return(l)
+    }
     
     if (parallel == FALSE) {
         # initiate variables
@@ -39,7 +49,7 @@ brute_force_knapsack <- function(x, w, parallel = FALSE) {
             set_v <- 0
             j <- 1
             # loop through the elements in the set
-            while (j <= length(c_sets) && set_w <= w) {
+            while (j <= length(c_sets) && set_w <= W) {
                 row <- c_sets[j]
                 set_w <- set_w + x[row, 1]
                 set_v <- set_v + x[row, 2]
@@ -47,7 +57,7 @@ brute_force_knapsack <- function(x, w, parallel = FALSE) {
             }
             
             # compare the value of this set to the previous best value
-            if (set_v > best_v && set_w <= w) {
+            if (set_v > best_v && set_w <= W) {
                 best_v <- round(set_v, 0)
                 chosen_items <- c_sets
             }
@@ -66,7 +76,7 @@ brute_force_knapsack <- function(x, w, parallel = FALSE) {
         ))
         
         sum_w <- unlist(mclapply(1:nrow(x), FUN = function(y) {
-                (combn(x[, "w"], y, sum))
+                (combn(x[, "W"], y, sum))
             }, mc.cores = cores
             ))
         
@@ -75,9 +85,9 @@ brute_force_knapsack <- function(x, w, parallel = FALSE) {
             }, mc.cores = cores
         ))
         
-        max_value <- max(sum_v[which(sum_w < w)])
-        max_weight <- max(sum_w[which(sum_w < w)])
-        elements <- selection[which(sum_v == max_value & sum_w <= w)]
+        max_value <- max(sum_v[which(sum_w < W)])
+        max_weight <- max(sum_w[which(sum_w < W)])
+        elements <- selection[which(sum_v == max_value & sum_w <= W)]
         
         return(list(
             value = round(max_value, 0),
@@ -88,5 +98,5 @@ brute_force_knapsack <- function(x, w, parallel = FALSE) {
     }
 }
 
-system.time(brute_force_knapsack(x = knapsack_objects[1:15,], w = 3500))
-system.time(brute_force_knapsack(x = knapsack_objects[1:15,], w = 3500, parallel = TRUE))
+# system.time(brute_force_knapsack(x = knapsack_objects[1:15,], W = 3500))
+# system.time(brute_force_knapsack(x = knapsack_objects[1:15,], W = 3500, parallel = TRUE))

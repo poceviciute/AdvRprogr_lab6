@@ -1,6 +1,6 @@
-\name{knapsack-package}
+\name{knapsack}
+
 \alias{knapsack-package}
-\alias{knapsack}
 \docType{package}
 \title{
 \packageTitle{knapsack}
@@ -13,7 +13,7 @@
 The DESCRIPTION file:
 \packageDESCRIPTION{knapsack}
 \packageIndices{knapsack}
-~~ An overview of how to use the package, including the most important functions ~~
+
 }
 \author{
 \packageAuthor{knapsack}
@@ -21,14 +21,14 @@ The DESCRIPTION file:
 Maintainer: \packageMaintainer{knapsack}
 }
 \references{
-~~ Literature or other references for background information ~~
+\url{https://en.wikipedia.org/wiki/Knapsack_problem}
 }
-~~ Optionally other standard keywords, one per line, from file KEYWORDS in the R documentation directory ~~
+
 \keyword{ package }
 \seealso{
-~~ Optional links to other man pages, e.g. ~~
-~~ \code{\link[<pkg>:<pkg>-package]{<pkg>}} ~~
+\url{https://github.com/poceviciute/AdvRprogr_lab6}
+
 }
 \examples{
-~~ simple examples of the most important functions ~~
+
 }

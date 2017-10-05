@@ -2,10 +2,10 @@
 \alias{knapsack_objects}
 \docType{data}
 \title{
-%%   ~~ data name/kind ... ~~
+knapsack_object
 }
 \description{
-%%  ~~ A concise (1-5 lines) description of the dataset. ~~
+knapsack_object
 }
 \usage{data("knapsack_objects")}
 \format{
@@ -16,14 +16,9 @@
   }
 }
 \details{
-%%  ~~ If necessary, more details than the __description__ above ~~
+A data frame with 2000 observations on the following 2 variables.
 }
-\source{
-%%  ~~ reference to a publication or URL from which the data were obtained ~~
-}
-\references{
-%%  ~~ possibly secondary sources and usages ~~
-}
+
 \examples{
 data(knapsack_objects)
 ## maybe str(knapsack_objects) ; plot(knapsack_objects) ...
