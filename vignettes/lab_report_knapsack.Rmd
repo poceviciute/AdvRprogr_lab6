@@ -12,11 +12,14 @@ vignette: >
 # Data used
 The following example data is being used for all knapsack solutions in this package. 
 
-Our package depends on dplyr and parallel::mcapply.
+Our package depends on dplyr and parallel.
 
-```{r data, warning = FALSE, comment= NA, message=FALSE, eval = FALSE}
+```{r data, warning = FALSE, comment= NA, message=FALSE}
 library(dplyr)
 library(parallel)
+
+# devtools::install_github("poceviciute/AdvRprogr_lab6")
+library(knapsack)
 
 set.seed(42)
 n <- 2000
@@ -33,7 +36,10 @@ The Brute Force funtion computes all different combination of the selected items
 
 The function have two modes, run the computation one or several cores. The function defaults to R standard one core, the parallel = TRUE runs on all cores. Note, that parallel = TRUE can only be run on UNIX platforms (Mac/Linux).
 
-```{r, brute_force, echo = FALSE, eval = FALSE}
+Parallelisation improves performance more than two times.
+
+```{r, echo = FALSE}
+
 brute_force_knapsack <- function(x, W, parallel = FALSE) {
     stopifnot(is.data.frame(x),
               apply(x, c(1, 2), is.numeric),
@@ -91,7 +97,7 @@ brute_force_knapsack <- function(x, W, parallel = FALSE) {
         
     } else{
         
-        cores <- parallel::detectCores()
+        cores <- 1
       
         
         selection <- unlist(mclapply(1:nrow(x), FUN = function(y) {
@@ -100,7 +106,7 @@ brute_force_knapsack <- function(x, W, parallel = FALSE) {
         ))
         
         sum_w <- unlist(mclapply(1:nrow(x), FUN = function(y) {
-                (combn(x[, "W"], y, sum))
+                (combn(x[, "w"], y, sum))
             }, mc.cores = cores
             ))
         
@@ -122,151 +128,59 @@ brute_force_knapsack <- function(x, W, parallel = FALSE) {
     }
 }
 
+lapply1core <- system.time(brute_force_knapsack(x = knapsack_objects[1:16,], W = 3500, parallel = TRUE))
 ```
 
-```{r, eval = FALSE}
+### Running brute force knapsack with 16 rows takes (in seconds)
+
+```{r, comment= NA}
+
 single_core <- system.time(brute_force_knapsack(x = knapsack_objects[1:16,], W = 3500))
 all_core <- system.time(brute_force_knapsack(x = knapsack_objects[1:16,], W = 3500, parallel = TRUE))
 
 print(list(single_core = single_core,
            all_core = all_core))
+
 ```
+
+## Optimisation - What performance gain could you get by trying to improving your code? 
+In all functions the main time consumption is caused by looping. Changing the loops to lapply could potentially make the code run twice as fast. This is visible from brute_force_knapsack function with parameter parallel = TRUE and cores number modified to 1: lapply is used instead of loops and profiling shows that performance is much better. 
+
+```{r, comment= NA, echo=FALSE}
+
+print(list(single_core = single_core,
+           lapply1core = lapply1core))
+
+```
+
+
 
 # Dynamic Programming
-```{r, echo = FALSE, eval = FALSE}
-knapsack_dynamic <- function(x, W) {
-    
-    stopifnot(is.data.frame(x),
-              apply(x, c(1, 2), is.numeric),
-              is.numeric(W))
-    
-    stopifnot(x > 0,
-              length(W) == 1,
-              W > 0)
-    
-    # initiate variables
-    n <- nrow(x)
-    K <-
-        matrix(rep.int(0, (n + 1) * (W + 1)), ncol = W + 1, nrow = n + 1)
-    # save the initial order of the elements
-    element_order <- order(x[, 1])
-    # sort weights and values in ascending order
-    wt <- x[order(x[, 1]), 1]
-    val <- x[order(x[, 1]), 2]
-    elements <- c()
-    
-    for (i in 1:(n + 1)) {
-        # This solution produces matrix with [1,] and [,1] filled with 0s.
-        # Hence, the row number is n+1 and column number is W+1
-        for (w in 1:(W + 1)) {
-            if (i == 1 || w == 1) {
-                K[i, w] <- 0
-            }
-            else if (wt[i - 1] < w - 1) {
-                K[i, w] <- max(val[i - 1] + K[i - 1, w - wt[i - 1]],  K[i - 1, w])
-            }
-            else if (wt[i - 1] == w - 1) {
-                K[i, w] <- max(val[i - 1] + 0,  K[i - 1, w])
-            }
-            else{
-                K[i, w] <- K[i - 1, w]
-            }
-            
-        }
-    }
-    
-    
-    # Trace back which elements were included
-    # Initiate the variables
-    j <- n + 1
-    k <- W + 1
-    i <- 1
-    
-    while (j >= 2 && k >= 1) {
-        if (K[j, k] > K[j - 1, k]) {
-            elements[i] <- element_order[j - 1]
-            i <- i + 1
-            k <- k - wt[j - 1]
-        }
-        # move one row up in the result matrix
-        j <- j - 1
-    }
-    
-    # Sort chosen items in ascending order
-    items <- elements[order(elements)]
-    result <-
-        list(value = round(K[n + 1, W + 1], 0), elements = items)
-    return(result)
-}
-```
 
-```{r, eval = FALSE}
-dynamic <- system.time(knapsack_dynamic(x = knapsack_objects[1:18,], W = 3500))
+Knapsack_dynamic takes into two arguments: x - data frame with weights and corresponding values, and W - the maximum allowed weight. The algorithm is based on dynamic programming approach and pseudo-code provided on [Wikipedia](https://en.wikipedia.org/wiki/Knapsack_problem).
 
+### Running dynamic knapsack with 500 rows takes (in seconds)
+```{r}
+dynamic <- system.time(knapsack_dynamic(x = knapsack_objects[1:500,], W = 3500))
+
+print(dynamic)
 ```
 
 # Greedy Heuristic
 
-The greedy_heuristic function takes two arguments, **x** which is the data frame containing weight and value and **w** which is the total maximum allowed weight of the function. The function computes the density $density = \frac{v}{w}$, sorts the data in in descending density order and pick out the objects with higest density within the the allowed maximum weight, w.
+The greedy_heuristic function takes two arguments, **x** and **w**. x is the data frame and w is the maximum allowed weight of the function. The function computes the $density = \frac{v}{w}$, sorts the data in in descending density order and pick out the objects with higest density within the allowed maximum weight, w.
 
-```{r, greedy_knapsack, echo = FALSE, eval = FALSE}
+### Running greedy knapsack with 1000000 rows takes (in seconds)
 
-greedy_knapsack <- function(x, W){
-    stopifnot(is.data.frame(x),
-              apply(x, c(1, 2), is.numeric),
-              is.numeric(W))
-    
-    stopifnot(x > 0,
-              length(W) == 1,
-              W > 0)
-    
-    x <- x %>%
-        mutate(element = seq_along((x[[1]])),
-               density = v/w) %>% 
-        arrange(desc(density))
-    
-    # Start values
-    sum_weight <- 0
-    sum_value <- 0
-    weight_check <- 0
-    selected_elements <- vector()
-    i <- 1
-    
-    while (weight_check <= W) {
-        sum_weight <- sum_weight + x[i, "w"]
-        sum_value <- sum_value + x[i, "v"]
-        
-        selected_elements[i] <- x[i, "element"]
-        
-        weight_check <- sum_weight + x[i + 1, "w"]
-        i <- i + 1
-    }
-    
-    return(list(value = round(sum_value, 0),
-                #sum_weight = sum_weight,
-                elements = selected_elements))
-}
+```{r, warning = FALSE}
+set.seed(42)
+m1 <-  1000000
+knapsack_objects_greedy <-
+    data.frame(w = sample(1:1000000, size = m1, replace = TRUE),
+               v = runif(n = m1, 0,  1000000))
+
+greedy <- system.time(greedy_knapsack(x = knapsack_objects_greedy, W = 3500))
+
+print(greedy)
 ```
 
-### How much time does it take to run the algorithm?
-```{r, gh_time, eval = FALSE}
-n_gh <- 1000000
-
-# Option 1
-system.time(greedy_knapsack(x = knapsack_objects[1:1000, ], W = 2000))
-
-# Option 2
-start <- Sys.time()
-greedy_knapsack(x = knapsack_objects[1:1000, ], W = 2000)
-end <- Sys.time()
-gh_time <- end-start
-gh_time
-
-
-
-answer_gh <- gh_time * (n_gh/1000)
-
-print(answer_gh)
-```
-
-To run greed_heuristic() with n = 1000000 takes answer_gh.
