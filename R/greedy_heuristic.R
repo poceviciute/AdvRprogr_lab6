@@ -46,6 +46,3 @@ greedy_knapsack <- function(x, W){
                 elements = selected_elements))
 }
 
-#greedy_knapsack(x = knapsack_objects[1:800, ], W = 3500)
-#system.time(greedy_knapsack(x = knapsack_objects[1:1200, ], W = 2000))
-

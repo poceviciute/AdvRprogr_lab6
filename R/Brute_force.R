@@ -99,4 +99,3 @@ brute_force_knapsack <- function(x, W, parallel = FALSE) {
     }
 }
 
-brute_force_knapsack(x = knapsack_objects[1:16,], W = 3500, parallel = TRUE)
