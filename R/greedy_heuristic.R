@@ -10,7 +10,7 @@
 
 # Greedy Heuristic --------------------------------------------------------
 
-greedy_knapsack <- function(x = knapsack_objects, W){
+greedy_knapsack <- function(x, W){
     stopifnot(is.data.frame(x),
               apply(x, c(1, 2), is.numeric),
               is.numeric(W))
