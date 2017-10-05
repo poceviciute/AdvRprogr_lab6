@@ -1,3 +1,13 @@
+#' @title Knapsack Dynamic Algorithm
+#' @name knapsack_dynamic
+#' @param x A data frame with numeric positive values.
+#' @param W A positive numeric scalar.
+#' @return A list with maximum value and elements.
+#' @description The knapsack problem is a problem in combinatorial optimization: how to maximasiethe value of fitted object by fullfilling the weight constraint.
+#' @references \url{https://en.wikipedia.org/wiki/Knapsack_problem}
+#' @export
+
+
 knapsack_dynamic <- function(x, W) {
     
     stopifnot(is.data.frame(x),
