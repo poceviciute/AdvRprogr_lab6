@@ -9,7 +9,7 @@ Description: Package solves the knapsack problem in three different ways
 License: GPL-2
 RoxygenNote: 6.0.1
 Depends: dplyr, parallel
-Suggests: R (>= 3.3.2), knitr,
+Suggests: knitr,
     rmarkdown,
     testthat
 VignetteBuilder: knitr
