@@ -2,6 +2,7 @@
 #' @name brute_force_knapsack
 #' @param x A data frame with numeric positive values.
 #' @param W A positive numeric scalar.
+#' @param parallel Set to TRUE computation to be run on all cores.
 #' @return A list with optimal value, weight and selected objects.
 #' @description Gives you the optimal solution with the Knapsack problem computed by brute force.
 #' Further information about the knapsack problem \url{https://en.wikipedia.org/wiki/Knapsack_problem}
@@ -76,7 +77,7 @@ brute_force_knapsack <- function(x, W, parallel = FALSE) {
         ))
         
         sum_w <- unlist(mclapply(1:nrow(x), FUN = function(y) {
-                (combn(x[, "W"], y, sum))
+                (combn(x[, "w"], y, sum))
             }, mc.cores = cores
             ))
         
@@ -98,5 +99,4 @@ brute_force_knapsack <- function(x, W, parallel = FALSE) {
     }
 }
 
-# system.time(brute_force_knapsack(x = knapsack_objects[1:15,], W = 3500))
-# system.time(brute_force_knapsack(x = knapsack_objects[1:15,], W = 3500, parallel = TRUE))
+brute_force_knapsack(x = knapsack_objects[1:16,], W = 3500, parallel = TRUE)

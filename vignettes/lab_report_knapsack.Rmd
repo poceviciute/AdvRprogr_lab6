@@ -12,10 +12,11 @@ vignette: >
 # Data used
 The following example data is being used for all knapsack solutions in this package. 
 
-Our package depends on dplyr.
+Our package depends on dplyr and parallel::mcapply.
 
 ```{r data, warning = FALSE, comment= NA, message=FALSE}
 library(dplyr)
+library(parallel)
 
 set.seed(42)
 n <- 2000
@@ -28,32 +29,34 @@ knapsack_objects <-
 
 # Brute Force Search
 
+The Brute Force funtion computes all different combination of the selected items, then computes the value and the weight for each combination and selects the higest value within the weight restriction.
 
-```{r}
+The function have two modes, run the computation one or several cores. The function defaults to R standard one core, the parallel = TRUE runs on all cores. Note, that parallel = TRUE can only be run on UNIX platforms (Mac/Linux).
 
-powerset <- function(items) {
-    len = length(items)
-    l = vector(mode = "list", length = 2 ^ len)
-    l[[1]] = numeric()
-    counter = 1L
-    for (x in 1L:length(items)) {
-        for (subset in 1L:counter) {
-            counter = counter + 1L
-            l[[counter]] = c(l[[subset]], items[x])
-        }
-    }
-    return(l)
-}
-
-brute_force_knapsack <- function(x, w, parallel = FALSE) {
+```{r, brute_force, echo = FALSE}
+brute_force_knapsack <- function(x, W, parallel = FALSE) {
     stopifnot(is.data.frame(x),
               apply(x, c(1, 2), is.numeric),
-              is.numeric(w))
+              is.numeric(W))
     
     stopifnot(x > 0,
-              length(w) == 1,
-              w > 0,
+              length(W) == 1,
+              W > 0,
               is.logical(parallel))
+    
+    powerset <- function(items) {
+        len = length(items)
+        l = vector(mode = "list", length = 2 ^ len)
+        l[[1]] = numeric()
+        counter = 1L
+        for (x in 1L:length(items)) {
+            for (subset in 1L:counter) {
+                counter = counter + 1L
+                l[[counter]] = c(l[[subset]], items[x])
+            }
+        }
+        return(l)
+    }
     
     if (parallel == FALSE) {
         # initiate variables
@@ -70,7 +73,7 @@ brute_force_knapsack <- function(x, w, parallel = FALSE) {
             set_v <- 0
             j <- 1
             # loop through the elements in the set
-            while (j <= length(c_sets) && set_w <= w) {
+            while (j <= length(c_sets) && set_w <= W) {
                 row <- c_sets[j]
                 set_w <- set_w + x[row, 1]
                 set_v <- set_v + x[row, 2]
@@ -78,7 +81,7 @@ brute_force_knapsack <- function(x, w, parallel = FALSE) {
             }
             
             # compare the value of this set to the previous best value
-            if (set_v > best_v && set_w <= w) {
+            if (set_v > best_v && set_w <= W) {
                 best_v <- round(set_v, 0)
                 chosen_items <- c_sets
             }
@@ -89,6 +92,7 @@ brute_force_knapsack <- function(x, w, parallel = FALSE) {
     } else{
         
         cores <- parallel::detectCores()
+      
         
         selection <- unlist(mclapply(1:nrow(x), FUN = function(y) {
                 combn(rownames(x), y, paste, collapse = " ")
@@ -96,7 +100,7 @@ brute_force_knapsack <- function(x, w, parallel = FALSE) {
         ))
         
         sum_w <- unlist(mclapply(1:nrow(x), FUN = function(y) {
-                (combn(x[, "w"], y, sum))
+                (combn(x[, "W"], y, sum))
             }, mc.cores = cores
             ))
         
@@ -105,9 +109,9 @@ brute_force_knapsack <- function(x, w, parallel = FALSE) {
             }, mc.cores = cores
         ))
         
-        max_value <- max(sum_v[which(sum_w < w)])
-        max_weight <- max(sum_w[which(sum_w < w)])
-        elements <- selection[which(sum_v == max_value & sum_w <= w)]
+        max_value <- max(sum_v[which(sum_w < W)])
+        max_weight <- max(sum_w[which(sum_w < W)])
+        elements <- selection[which(sum_v == max_value & sum_w <= W)]
         
         return(list(
             value = round(max_value, 0),
@@ -120,16 +124,103 @@ brute_force_knapsack <- function(x, w, parallel = FALSE) {
 
 ```
 
-# Dynamic Programming
+```{r}
+single_core <- system.time(brute_force_knapsack(x = knapsack_objects[1:16,], W = 3500))
+all_core <- system.time(brute_force_knapsack(x = knapsack_objects[1:16,], W = 3500, parallel = TRUE))
 
+print(list(single_core = single_core,
+           all_core = all_core))
+```
+
+# Dynamic Programming
+```{r, echo = FALSE}
+knapsack_dynamic <- function(x, W) {
+    
+    stopifnot(is.data.frame(x),
+              apply(x, c(1, 2), is.numeric),
+              is.numeric(W))
+    
+    stopifnot(x > 0,
+              length(W) == 1,
+              W > 0)
+    
+    # initiate variables
+    n <- nrow(x)
+    K <-
+        matrix(rep.int(0, (n + 1) * (W + 1)), ncol = W + 1, nrow = n + 1)
+    # save the initial order of the elements
+    element_order <- order(x[, 1])
+    # sort weights and values in ascending order
+    wt <- x[order(x[, 1]), 1]
+    val <- x[order(x[, 1]), 2]
+    elements <- c()
+    
+    for (i in 1:(n + 1)) {
+        # This solution produces matrix with [1,] and [,1] filled with 0s.
+        # Hence, the row number is n+1 and column number is W+1
+        for (w in 1:(W + 1)) {
+            if (i == 1 || w == 1) {
+                K[i, w] <- 0
+            }
+            else if (wt[i - 1] < w - 1) {
+                K[i, w] <- max(val[i - 1] + K[i - 1, w - wt[i - 1]],  K[i - 1, w])
+            }
+            else if (wt[i - 1] == w - 1) {
+                K[i, w] <- max(val[i - 1] + 0,  K[i - 1, w])
+            }
+            else{
+                K[i, w] <- K[i - 1, w]
+            }
+            
+        }
+    }
+    
+    
+    # Trace back which elements were included
+    # Initiate the variables
+    j <- n + 1
+    k <- W + 1
+    i <- 1
+    
+    while (j >= 2 && k >= 1) {
+        if (K[j, k] > K[j - 1, k]) {
+            elements[i] <- element_order[j - 1]
+            i <- i + 1
+            k <- k - wt[j - 1]
+        }
+        # move one row up in the result matrix
+        j <- j - 1
+    }
+    
+    # Sort chosen items in ascending order
+    items <- elements[order(elements)]
+    result <-
+        list(value = round(K[n + 1, W + 1], 0), elements = items)
+    return(result)
+}
+```
+
+```{r}
+dynamic <- system.time(knapsack_dynamic(x = knapsack_objects[1:18,], W = 3500))
+
+
+print(dynamic)
+```
 
 # Greedy Heuristic
 
 The greedy_heuristic function takes two arguments, **x** which is the data frame containing weight and value and **w** which is the total maximum allowed weight of the function. The function computes the density $density = \frac{v}{w}$, sorts the data in in descending density order and pick out the objects with higest density within the the allowed maximum weight, w.
 
-```{r, greedy_heuristic}
-greedy_heuristic <- function(x = knapsack_objects, w){
-    stopifnot(is.numeric(w))
+```{r, greedy_knapsack, echo = FALSE}
+
+greedy_knapsack <- function(x, W){
+    stopifnot(is.data.frame(x),
+              apply(x, c(1, 2), is.numeric),
+              is.numeric(W))
+    
+    stopifnot(x > 0,
+              length(W) == 1,
+              W > 0)
     
     x <- x %>%
         mutate(element = seq_along((x[[1]])),
@@ -143,7 +234,7 @@ greedy_heuristic <- function(x = knapsack_objects, w){
     selected_elements <- vector()
     i <- 1
     
-    while (weight_check <= w) {
+    while (weight_check <= W) {
         sum_weight <- sum_weight + x[i, "w"]
         sum_value <- sum_value + x[i, "v"]
         
@@ -154,8 +245,8 @@ greedy_heuristic <- function(x = knapsack_objects, w){
     }
     
     return(list(value = round(sum_value, 0),
-                sum_weight = sum_weight,
-                selected_elements = selected_elements))
+                #sum_weight = sum_weight,
+                elements = selected_elements))
 }
 ```
 
@@ -164,11 +255,11 @@ greedy_heuristic <- function(x = knapsack_objects, w){
 n_gh <- 1000000
 
 # Option 1
-system.time(greedy_heuristic(x = knapsack_objects[1:1000, ], w = 2000))
+system.time(greedy_knapsack(x = knapsack_objects[1:1000, ], W = 2000))
 
 # Option 2
 start <- Sys.time()
-greedy_heuristic(x = knapsack_objects[1:1000, ], w = 2000)
+greedy_knapsack(x = knapsack_objects[1:1000, ], W = 2000)
 end <- Sys.time()
 gh_time <- end-start
 gh_time
